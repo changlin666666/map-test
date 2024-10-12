@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- import CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/element-ui/lib/theme-chalk/index.css"
+    />
+    <style>
+      .title {
+        display: flex;
+        justify-content: space-between;
+        line-height: 30px;
+      }
+      .title .current-city {
+        font-weight: bolder;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+        display: flex;
+        flex-wrap: wrap;
+      }
+      ul li {
+        font-size: 12px;
+        line-height: 26px;
+        color: #0093ff;
+        margin-right: 10px;
+        cursor: pointer;
+      }
+      .city-list .city {
+        padding-bottom: 18px;
+        border-bottom: 1px solid #e6e6e6;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <el-popover placement="bottom" width="450" trigger="click">
+        <div class="title">
+          <div class="current-city">当前城市：北京</div>
+          <el-cascader
+            size="mini"
+            placeholder="试试搜索：指南"
+            :options="options"
+            filterable
+          ></el-cascader>
+        </div>
+        <div class="hot-city">
+          <ul>
+            <li v-for="city in hotCityList" :key="city">{{city}}</li>
+          </ul>
+        </div>
+
+        <div class="city-list">
+          <div class="city">城市</div>
+          <ul class="city-city-letter">
+            <li v-for="first in cityListSortFirst" :keys="first">{{first}}</li>
+          </ul>
+        </div>
+        <el-button slot="reference"
+          >click 激活 <i class="el-icon-caret-bottom"></i
+        ></el-button>
+      </el-popover>
+    </div>
+  </body>
+  <!-- import Vue before Element -->
+  <script src="./pinyin-js.js" type="module"></script>
+  <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+  <!-- import JavaScript -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="./provinceCityDatas.js"></script>
+
+  <script>
+    import pinyin from "js-pinyin";
+    window.pinyin = pinyin;
+  </script>
+  <script>
+    new Vue({
+      el: "#app",
+      created() {
+        const cityList = [];
+        console.log(pinyin);
+        citys.children.forEach((item) => {
+          if (item.name.includes("市") || item.name.includes("台湾")) {
+            cityList.push(item);
+          } else {
+            item.children.forEach((city) => {
+              cityList.push(city);
+            });
+          }
+        });
+        pinyin.setOptions({ checkPolyphone: false, charCase: 0 });
+        //先拿到全部城市的名字
+        let cityArr = [];
+        for (let i = 0; i < cityList.length; i++) {
+          //遍历数组,拿到城市名称
+          let cityName = cityList[i].name;
+          //取全部城市的首字母
+          let fristName = pinyin.Pinyin.getCamelChars(cityName).substring(0, 1); //这里截取首字母的第一位
+          //给原json添加首字母键值对
+          cityList[i].first = fristName;
+          //放入新数组
+          cityArr.push(cityList[i]);
+        }
+        let cityJson = {};
+        //根据首字母键值对给原数据按首字母分类
+        for (let i = 0; i < _this.FristPin.length; i++) {
+          //这里的FirstPin是一个写入了所有字母的数组,见data中
+          cityJson[_this.FristPin[i]] = cityArr.filter(function (value) {
+            return value.first === _this.FristPin[i];
+          });
+        }
+        _this.cityjson = cityJson;
+        this.cityListSort = pySegSort(cityList);
+      },
+      computed: {
+        cityListSortFirst() {
+          return Object.keys(this.cityListSort);
+        },
+      },
+      data: function () {
+        return {
+          visible: false,
+          options: [],
+          hotCityList: [
+            "全国",
+            "北京",
+            "天津",
+            "沈阳",
+            "大连",
+            "上海",
+            "南京",
+            "苏州",
+            "杭州",
+            "青岛",
+            "郑州",
+            "武汉",
+            "长沙",
+            "广州",
+            "深圳",
+            "重庆",
+            "成都",
+            "西安",
+            "香港",
+            "澳门",
+          ],
+          cityListSort: [],
+        };
+      },
+    });
+  </script>
+</html>

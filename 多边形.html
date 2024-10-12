@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Draggable Polygon with Center Marker</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { width: 600px; height: 400px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
+    <script>
+        // 初始化地图
+        var map = L.map('map').setView([51.505, -0.09], 13);
+
+        // 添加OpenStreetMap图层
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 随机生成一个多边形
+        var polygon = L.polygon([
+            [51.509, -0.08],
+            [51.503, -0.06],
+            [51.51, -0.047]
+        ]).addTo(map);
+
+        // 计算多边形的中心点
+        function getPolygonCenter(polygon) {
+            var latlngs = polygon.getLatLngs()[0];
+            var latSum = 0, lngSum = 0;
+            latlngs.forEach(function(latlng) {
+                latSum += latlng.lat;
+                lngSum += latlng.lng;
+            });
+            return [latSum / latlngs.length, lngSum / latlngs.length];
+        }
+
+        // 添加中心点的 marker
+        var center = getPolygonCenter(polygon);
+        var centerMarker = L.marker(center, { draggable: true }).addTo(map);
+
+        var isDragging = false;
+        var initialLatLngs = [];
+        var startPoint = null;
+
+        // 监听鼠标按下事件
+        polygon.on('mousedown', function(e) {
+            isDragging = true;
+            startPoint = e.latlng;
+            initialLatLngs = polygon.getLatLngs()[0].map(function(latlng) {
+                return [latlng.lat, latlng.lng];
+            });
+            map.dragging.disable();
+            map.on('mousemove', onMouseMove);
+            map.on('mouseup', onMouseUp);
+        });
+
+        function onMouseMove(e) {
+            if (!isDragging) return;
+
+            var offsetLat = e.latlng.lat - startPoint.lat;
+            var offsetLng = e.latlng.lng - startPoint.lng;
+
+            var newLatLngs = initialLatLngs.map(function(latlng) {
+                return [latlng[0] + offsetLat, latlng[1] + offsetLng];
+            });
+
+            polygon.setLatLngs([newLatLngs]);
+
+            // 更新中心点 marker 的位置
+            var newCenter = getPolygonCenter(polygon);
+            centerMarker.setLatLng(newCenter);
+        }
+
+        function onMouseUp() {
+            isDragging = false;
+            map.dragging.enable();
+            map.off('mousemove', onMouseMove);
+            map.off('mouseup', onMouseUp);
+        }
+
+        // 防止多边形拖动时底图跟随拖动
+        map.on('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                map.dragging.enable();
+                map.off('mousemove', onMouseMove);
+                map.off('mouseup', onMouseUp);
+            }
+        });
+
+        // 监听marker的拖动事件
+        centerMarker.on('drag', function(e) {
+            var newLatLng = e.latlng;
+            if (!polygon.getBounds().contains(newLatLng)) {
+                // 如果新位置不在多边形内，将marker拉回最近的多边形边界
+                var latlngs = polygon.getLatLngs()[0];
+                var closestPoint = L.GeometryUtil.closest(map, latlngs, newLatLng);
+                centerMarker.setLatLng(closestPoint);
+            }
+        });
+
+        // 在拖动结束时，如果 marker 不在多边形内部，则将其拉回多边形边界
+        centerMarker.on('dragend', function(e) {
+            var newLatLng = e.target.getLatLng();
+            if (!polygon.getBounds().contains(newLatLng)) {
+                var latlngs = polygon.getLatLngs()[0];
+                var closestPoint = L.GeometryUtil.closest(map, latlngs, newLatLng);
+                centerMarker.setLatLng(closestPoint);
+            }
+        });
+
+        // 使用Leaflet.GeometryUtil插件计算最近的点
+        L.GeometryUtil = L.extend(L.GeometryUtil || {}, {
+            closest: function(map, layer, latlng) {
+                var latlngs = (layer instanceof L.Polygon) ? layer.getLatLngs()[0] : (layer instanceof L.Polyline) ? layer.getLatLngs() : [];
+                var mindist = Infinity, result = null;
+                for (var i = 0; i < latlngs.length; i++) {
+                    var ll = latlngs[i], distance = latlng.distanceTo(ll);
+                    if (distance < mindist) {
+                        mindist = distance;
+                        result = ll;
+                    }
+                }
+                return result;
+            }
+        });
+    </script>
+</body>
+</html>

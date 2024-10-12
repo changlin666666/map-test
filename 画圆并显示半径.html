@@ -1,0 +1,71 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Circle with Dashed Radius and Vertical Label</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; }
+        .radius-label {
+            background-color: white;
+            border: 1px solid gray;
+            padding: 2px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .radius-label span {
+            display: block;
+            transform: rotate(-90deg);
+            transform-origin: left top;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // 初始化地图
+        var map = L.map('map').setView([51.505, -0.09], 13);
+
+        // 添加底图
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 创建一个圆
+        var circle = L.circle([37.981008, 114.732127], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius: 1000
+        }).addTo(map);
+
+        // 获取圆心和半径
+        var center = circle.getLatLng();
+        var radius = circle.getRadius();
+
+        // 计算圆的边界点
+        var edgePoint = L.latLng(center.lat + (radius / 111320), center.lng);
+
+        // 创建虚线的半径
+        var dashedLine = L.polyline([center, edgePoint], {
+            color: 'blue',
+            dashArray: '5, 10'
+        }).addTo(map);
+
+        // 在虚线旁边添加竖直排列的提示
+        var midPoint = L.latLng((center.lat + edgePoint.lat) / 2, (center.lng + edgePoint.lng) / 2);
+        var tooltip = L.tooltip({
+            permanent: true,
+            direction: 'center',
+            className: 'radius-tooltip'
+        })
+        .setContent("半径: " + radius + "m")
+        .setLatLng(midPoint)
+        .addTo(map);
+    </script>
+</body>
+</html>

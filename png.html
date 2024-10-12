@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>天气信息展示</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="map" style="width:100vw; height: 100vh;"></div>
+    
+    <canvas id="weatherCanvas" style="display: none;"></canvas>
+    <script>
+        var map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://webrd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}', {
+            maxZoom: 16,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 加载天气图片
+        var weatherImage = new Image();
+        weatherImage.onload = function() {
+            var weatherCanvas = document.getElementById('weatherCanvas');
+            var ctx = weatherCanvas.getContext('2d');
+            weatherCanvas.width = weatherImage.width;
+            weatherCanvas.height = weatherImage.height;
+            ctx.drawImage(weatherImage, 0, 0);
+
+            // 获取图片数据
+            var imageData = ctx.getImageData(0, 0, weatherCanvas.width, weatherCanvas.height);
+            var data = imageData.data;
+
+            // 假设每个像素点的第4个字节表示天气类型
+            for (var i = 0; i < data.length; i += 4) {
+                var weatherType = data[i + 3]; // 从第4个字节获取天气类型
+                // 这里需要将像素坐标转换为地图坐标
+                // 以下仅为示例，实际转换方法取决于您的数据和需求
+                var mapX = (i % (weatherCanvas.width * 4)) / 4;
+                var mapY = Math.floor(i / (weatherCanvas.width * 4));
+                // 创建地图标记或其他覆盖物
+                // 注意：这里的坐标转换仅为示例，您需要根据实际情况进行调整
+                var weatherIcon = L.marker([51.505 + (mapX / 100), -0.09 + (mapY / 100)]).addTo(map);
+                weatherIcon.bindPopup('Weather Type: ' + weatherType);
+            }
+        };
+        weatherImage.src = './828-200x200.jpg';  // PNG图片路径
+    </script>
+</body>
+</html>
